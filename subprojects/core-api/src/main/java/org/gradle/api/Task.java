@@ -28,7 +28,6 @@ import org.gradle.api.services.BuildService;
 import org.gradle.api.services.BuildServiceRegistration;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.Internal;
-import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskDependency;
 import org.gradle.api.tasks.TaskDestroyables;
 import org.gradle.api.tasks.TaskInputs;
@@ -92,7 +91,7 @@ import java.util.Set;
  * <ul>
  *
  * <li>A {@code String}, {@code CharSequence} or {@code groovy.lang.GString} task path or name. A relative path is interpreted relative to the task's {@link Project}. This
- * allows you to refer to tasks in other projects.</li>
+ * allows you to refer to tasks in other projects. These task references will not cause task creation.</li>
  *
  * <li>A {@link Task}.</li>
  *
@@ -281,7 +280,6 @@ public interface Task extends Comparable<Task>, ExtensionAware {
      * @since 7.3
      */
     @Incubating
-    @Internal
     void doNotTrackState(String reasonNotToTrackState);
 
     /**
@@ -789,7 +787,6 @@ public interface Task extends Comparable<Task>, ExtensionAware {
      * @since 5.0
      */
     @Internal
-    @Optional
     Property<Duration> getTimeout();
 
     /**

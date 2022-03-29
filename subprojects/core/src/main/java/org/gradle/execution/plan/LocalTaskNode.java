@@ -44,6 +44,7 @@ import java.util.Set;
 public class LocalTaskNode extends TaskNode {
     private final TaskInternal task;
     private final WorkValidationContext validationContext;
+    private final ResolveMutationsNode resolveMutationsNode;
     private ImmutableActionSet<Task> postAction = ImmutableActionSet.empty();
     private Set<Node> lifecycleSuccessors;
 
@@ -51,10 +52,10 @@ public class LocalTaskNode extends TaskNode {
     private List<? extends ResourceLock> resourceLocks;
     private TaskProperties taskProperties;
 
-    public LocalTaskNode(TaskInternal task, WorkValidationContext workValidationContext, int ordinal) {
-        super(ordinal);
+    public LocalTaskNode(TaskInternal task, NodeValidator nodeValidator, WorkValidationContext workValidationContext) {
         this.task = task;
         this.validationContext = workValidationContext;
+        resolveMutationsNode = new ResolveMutationsNode(this, nodeValidator);
     }
 
     /**
@@ -100,6 +101,11 @@ public class LocalTaskNode extends TaskNode {
     }
 
     @Override
+    public boolean isPublicNode() {
+        return true;
+    }
+
+    @Override
     public Action<? super Task> getPostAction() {
         return postAction;
     }
@@ -124,7 +130,7 @@ public class LocalTaskNode extends TaskNode {
     }
 
     @Override
-    public void prepareForExecution() {
+    public void prepareForExecution(Action<Node> monitor) {
         ((TaskContainerInternal) task.getProject().getTasks()).prepareForExecution(task);
     }
 
@@ -150,11 +156,6 @@ public class LocalTaskNode extends TaskNode {
         for (Node targetNode : getShouldRunAfter(dependencyResolver)) {
             addShouldSuccessor(targetNode);
         }
-    }
-
-    @Override
-    public boolean requiresMonitoring() {
-        return false;
     }
 
     private void addFinalizerNode(TaskNode finalizerNode) {
@@ -219,6 +220,10 @@ public class LocalTaskNode extends TaskNode {
     }
 
     @Override
+    public Node getPrepareNode() {
+        return resolveMutationsNode;
+    }
+
     public void resolveMutations() {
         final LocalTaskNode taskNode = this;
         final TaskInternal task = getTask();
@@ -238,8 +243,6 @@ public class LocalTaskNode extends TaskNode {
         } catch (Exception e) {
             throw new TaskExecutionException(task, e);
         }
-
-        mutations.resolved = true;
 
         if (!mutations.destroyablePaths.isEmpty()) {
             if (mutations.hasOutputs) {
